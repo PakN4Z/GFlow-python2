@@ -174,8 +174,6 @@ import subprocess
 
 
 class MonitorUI(QMainWindow):
-    print("Initializing MonitorUI")
-
     def __init__(self):
         super().__init__()
         self.initUI()
@@ -185,6 +183,7 @@ class MonitorUI(QMainWindow):
         self.monitor.status_updated.connect(self.update_status)
 
     def initUI(self):
+        self.table = QTableWidget(self)
         # Add the GUI initialization code here
         pass
 
@@ -278,241 +277,241 @@ class MonitorUI(QMainWindow):
         # Update the completion time
         self.updateCompletionTime()
 
-    def closeEvent(self, event):
-        # Properly stop the thread
-        self.monitor.thread.quit()
-        self.monitor.thread.wait()
-        super().closeEvent(event)
+        def closeEvent(self, event):
+            # Properly stop the thread
+            self.monitor.thread.quit()
+            self.monitor.thread.wait()
+            super().closeEvent(event)
 
-    # Constants section
-
-
-STATUS_AUTOMATIC = "Automatic"
-STATUS_LABEL_TEXT = "Machine Status: "
-LINE_NUMBER_LABEL_TEXT = "Line Number: "
-SELECTED_PROGRAM_LABEL_TEXT = "Selected Program: "
-CURRENT_PROGRAM_LABEL_TEXT = "Current Program: "
-ERROR_LABEL_NO_ERRORS_TEXT = "No Errors"
-ERROR_STYLESHEET_RED = "color: red;"
-ERROR_STYLESHEET_BLACK = "color: black;"
+        # Constants section
 
 
-@pyqtSlot(str, int, str, str, str, str)
-def updateUI(self, status, progress, selected_program, current_program, error_text, error_class):
-    self.update_machine_status(status)
-    self.update_line_number(progress)
-    self.update_selected_program(selected_program)
-    self.update_current_program(current_program)
-    self.update_error_label(error_text, error_class)
-    logging.info(f"UI Updated: {error_text}, Class: {error_class}")
+    STATUS_AUTOMATIC = "Automatic"
+    STATUS_LABEL_TEXT = "Machine Status: "
+    LINE_NUMBER_LABEL_TEXT = "Line Number: "
+    SELECTED_PROGRAM_LABEL_TEXT = "Selected Program: "
+    CURRENT_PROGRAM_LABEL_TEXT = "Current Program: "
+    ERROR_LABEL_NO_ERRORS_TEXT = "No Errors"
+    ERROR_STYLESHEET_RED = "color: red;"
+    ERROR_STYLESHEET_BLACK = "color: black;"
 
 
-def update_machine_status(self, status):
-    status_html = f"<span style='color: green; font-weight: normal;'>{status}</span>" if status == STATUS_AUTOMATIC else status
-    self.machine_status_label.setText(f"{STATUS_LABEL_TEXT}{status_html}")
+    @pyqtSlot(str, int, str, str, str, str)
+    def updateUI(self, status, progress, selected_program, current_program, error_text, error_class):
+        self.update_machine_status(status)
+        self.update_line_number(progress)
+        self.update_selected_program(selected_program)
+        self.update_current_program(current_program)
+        self.update_error_label(error_text, error_class)
+        logging.info(f"UI Updated: {error_text}, Class: {error_class}")
 
 
-def update_line_number(self, progress):
-    self.line_number_label.setText(
-        f"{LINE_NUMBER_LABEL_TEXT}<span style='font-weight: normal; color: black;'>{progress}</span>")
+    def update_machine_status(self, status):
+        status_html = f"<span style='color: green; font-weight: normal;'>{status}</span>" if status == STATUS_AUTOMATIC else status
+        self.machine_status_label.setText(f"{STATUS_LABEL_TEXT}{status_html}")
 
 
-def update_selected_program(self, selected_program):
-    self.selected_program_label.setText(
-        f"{SELECTED_PROGRAM_LABEL_TEXT}<span style='font-weight: normal; color: black;'>{selected_program}</span>")
+    def update_line_number(self, progress):
+        self.line_number_label.setText(
+            f"{LINE_NUMBER_LABEL_TEXT}<span style='font-weight: normal; color: black;'>{progress}</span>")
 
 
-def update_current_program(self, current_program):
-    self.current_program_label.setText(
-        f"{CURRENT_PROGRAM_LABEL_TEXT}<span style='font-weight: normal; color: black;'>{current_program}</span>")
+    def update_selected_program(self, selected_program):
+        self.selected_program_label.setText(
+            f"{SELECTED_PROGRAM_LABEL_TEXT}<span style='font-weight: normal; color: black;'>{selected_program}</span>")
 
 
-def update_error_label(self, error_text, error_class):
-    if error_text and error_class:
-        self.error_label.setText(f"Error: {error_text}, Class: {error_class}")
-        self.error_label.setStyleSheet(ERROR_STYLESHEET_RED)
-    elif error_text:
-        self.error_label.setText(error_text)
-        self.error_label.setStyleSheet(ERROR_STYLESHEET_RED)
-    else:
-        self.error_label.setText(ERROR_LABEL_NO_ERRORS_TEXT)
-        self.error_label.setStyleSheet(ERROR_STYLESHEET_BLACK)
+    def update_current_program(self, current_program):
+        self.current_program_label.setText(
+            f"{CURRENT_PROGRAM_LABEL_TEXT}<span style='font-weight: normal; color: black;'>{current_program}</span>")
 
-def initUI(self):
-    self.setWindowTitle("HSM 200 U LP GFlow")
-    self.setGeometry(100, 100, 1200, 800)
 
-    self.update_timer = QTimer(self)
-    self.update_timer.timeout.connect(self.update_ui_with_database_data)
-    self.update_timer.start(10000)  # Update every 10 seconds
-
-    self.central_widget = QWidget(self)
-    self.setCentralWidget(self.central_widget)
-    main_layout = QVBoxLayout(self.central_widget)
-
-    # Upper Section
-    self.initUpperSection(main_layout)
-
-    # Middle Section
-    self.initMiddleSection(main_layout)
-
-    # Bottom Section with additional "Cancel Error" button
-    self.initBottomSection(main_layout)
-
-    # Apply bold font to labels and buttons
-    bold_font = QFont()
-    bold_font.setBold(True)
-
-    self.line_number_label.setFont(bold_font)
-    self.machine_status_label.setFont(bold_font)
-    self.selected_program_label.setFont(bold_font)
-    self.current_program_label.setFont(bold_font)
-    self.auto_button.setFont(bold_font)
-    self.sleep_button.setFont(bold_font)
-    self.cancel_error_button.setFont(bold_font)
-
-    # Start the monitor
-    self.monitor = MachineMonitor("192.168.1.228", self.updateUI)
-    # self.monitor.start()
-
-def initUpperSection(self, layout):
-    upper_layout = QHBoxLayout()
-
-    self.line_number_label = QLabel("Line Number: --", self)
-    upper_layout.addWidget(self.line_number_label)
-
-    self.machine_status_label = QLabel("Machine Status: Unknown", self)
-    upper_layout.addWidget(self.machine_status_label)
-
-    self.selected_program_label = QLabel("Selected Program: None", self)
-    upper_layout.addWidget(self.selected_program_label)
-
-    self.current_program_label = QLabel("Current Program: None", self)
-    upper_layout.addWidget(self.current_program_label)
-
-    self.live_screen_button = QPushButton("Live Screen", self)
-    upper_layout.addWidget(self.live_screen_button)
-    self.live_screen_button.clicked.connect(self.show_live_screen)
-
-    self.error_label = QLabel("Error: None", self)
-    self.error_label.setStyleSheet("color: red;")
-    upper_layout.addWidget(self.error_label)
-
-    layout.addLayout(upper_layout)
-
-def initMiddleSection(self, layout):
-    self.table = QTableWidget(self)
-    self.table.setColumnCount(8)  # Number of columns
-    self.table.setHorizontalHeaderLabels(
-        ["ID", "Pallet", "Program", "Created", "Milling Time", "Control", "Status", "ATP Program"])
-    layout.addWidget(self.table)
-
-    # Set column widths to be resizable
-    self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)  # "Program" column
-    self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.Stretch)  # "Control" column
-    # When populating the table
-    # data = self.read_database()
-    # for row_index, entry in enumerate(data):
-    #    control_widget = ControlWidget(parent=self, row_id=entry['program_id'], update_table_callback=self.update_ui_with_database_data)
-    #    self.table.setCellWidget(row_index, 5, control_widget)  # Ensure correct column index
-
-    # Set row heights to be adjustable based on content
-    self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-
-    self.completion_time_label = QLabel("Estimated Completion: --", self)
-    layout.addWidget(self.completion_time_label)
-
-def initBottomSection(self, layout):
-    bottom_layout = QHBoxLayout()
-
-    self.auto_button = QPushButton("AUTO", self)
-    bottom_layout.addWidget(self.auto_button)
-
-    self.sleep_button = QPushButton("SLEEP", self)
-    bottom_layout.addWidget(self.sleep_button)
-
-    # Adding the "Cancel Error" button
-    self.cancel_error_button = QPushButton("Cancel Error", self)
-    bottom_layout.addWidget(self.cancel_error_button)
-    self.cancel_error_button.clicked.connect(self.cancel_error)
-
-    layout.addLayout(bottom_layout)
-
-def cancel_error(self):
-    # Send CE with KEY command to the machine
-    try:
-        result = subprocess.run(
-            ["C:\\Program Files (x86)\\HEIDENHAIN\\TNCremo\\TNCcmdPlus.exe", "-i", self.monitor.ip_address, "KEY",
-             "CE"],
-            capture_output=True,
-            text=True
-        )
-        if result.returncode == 0:
-            # You may want to update the UI to reflect the error has been cancelled
-            self.error_label.setText("No Errors")
-            self.error_label.setStyleSheet("color: green;")
-            logging.info("Error cancelled successfully.")
+    def update_error_label(self, error_text, error_class):
+        if error_text and error_class:
+            self.error_label.setText(f"Error: {error_text}, Class: {error_class}")
+            self.error_label.setStyleSheet(ERROR_STYLESHEET_RED)
+        elif error_text:
+            self.error_label.setText(error_text)
+            self.error_label.setStyleSheet(ERROR_STYLESHEET_RED)
         else:
-            logging.error("Failed to cancel error on the machine.")
-    except Exception as e:
-        logging.error(f"Error cancelling error on the machine: {e}")
+            self.error_label.setText(ERROR_LABEL_NO_ERRORS_TEXT)
+            self.error_label.setStyleSheet(ERROR_STYLESHEET_BLACK)
 
-def show_live_screen(self):
-    screen_file_path = self.fetch_live_screen()
-    if screen_file_path:
-        self.display_live_screen(screen_file_path)
-        os.remove(screen_file_path)  # Clean up the temporary file
+    def initUI(self):
+        self.setWindowTitle("HSM 200 U LP GFlow")
+        self.setGeometry(100, 100, 1200, 800)
 
-def fetch_live_screen(self):
-    temp_bitmap_file = "\\temp\\temp.bmp"
-    try:
-        subprocess.run(
-            ["C:\\Program Files (x86)\\HEIDENHAIN\\TNCremo\\TNCcmdPlus.exe", "-i", self.monitor.ip_address,
-             "screen", temp_bitmap_file], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
-        if os.path.exists(temp_bitmap_file):
-            return temp_bitmap_file
-        else:
-            print("Failed to fetch or save live screen.")
+        self.update_timer = QTimer(self)
+        self.update_timer.timeout.connect(self.update_ui_with_database_data)
+        self.update_timer.start(10000)  # Update every 10 seconds
+
+        self.central_widget = QWidget(self)
+        self.setCentralWidget(self.central_widget)
+        main_layout = QVBoxLayout(self.central_widget)
+
+        # Upper Section
+        self.initUpperSection(main_layout)
+
+        # Middle Section
+        self.initMiddleSection(main_layout)
+
+        # Bottom Section with additional "Cancel Error" button
+        self.initBottomSection(main_layout)
+
+        # Apply bold font to labels and buttons
+        bold_font = QFont()
+        bold_font.setBold(True)
+
+        self.line_number_label.setFont(bold_font)
+        self.machine_status_label.setFont(bold_font)
+        self.selected_program_label.setFont(bold_font)
+        self.current_program_label.setFont(bold_font)
+        self.auto_button.setFont(bold_font)
+        self.sleep_button.setFont(bold_font)
+        self.cancel_error_button.setFont(bold_font)
+
+        # Start the monitor
+        self.monitor = MachineMonitor("192.168.1.228", self.updateUI)
+        # self.monitor.start()
+
+    def initUpperSection(self, layout):
+        upper_layout = QHBoxLayout()
+
+        self.line_number_label = QLabel("Line Number: --", self)
+        upper_layout.addWidget(self.line_number_label)
+
+        self.machine_status_label = QLabel("Machine Status: Unknown", self)
+        upper_layout.addWidget(self.machine_status_label)
+
+        self.selected_program_label = QLabel("Selected Program: None", self)
+        upper_layout.addWidget(self.selected_program_label)
+
+        self.current_program_label = QLabel("Current Program: None", self)
+        upper_layout.addWidget(self.current_program_label)
+
+        self.live_screen_button = QPushButton("Live Screen", self)
+        upper_layout.addWidget(self.live_screen_button)
+        self.live_screen_button.clicked.connect(self.show_live_screen)
+
+        self.error_label = QLabel("Error: None", self)
+        self.error_label.setStyleSheet("color: red;")
+        upper_layout.addWidget(self.error_label)
+
+        layout.addLayout(upper_layout)
+
+    def initMiddleSection(self, layout):
+        self.table = QTableWidget(self)
+        self.table.setColumnCount(8)  # Number of columns
+        self.table.setHorizontalHeaderLabels(
+            ["ID", "Pallet", "Program", "Created", "Milling Time", "Control", "Status", "ATP Program"])
+        layout.addWidget(self.table)
+
+        # Set column widths to be resizable
+        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)  # "Program" column
+        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.Stretch)  # "Control" column
+        # When populating the table
+        # data = self.read_database()
+        # for row_index, entry in enumerate(data):
+        #    control_widget = ControlWidget(parent=self, row_id=entry['program_id'], update_table_callback=self.update_ui_with_database_data)
+        #    self.table.setCellWidget(row_index, 5, control_widget)  # Ensure correct column index
+
+        # Set row heights to be adjustable based on content
+        self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+
+        self.completion_time_label = QLabel("Estimated Completion: --", self)
+        layout.addWidget(self.completion_time_label)
+
+    def initBottomSection(self, layout):
+        bottom_layout = QHBoxLayout()
+
+        self.auto_button = QPushButton("AUTO", self)
+        bottom_layout.addWidget(self.auto_button)
+
+        self.sleep_button = QPushButton("SLEEP", self)
+        bottom_layout.addWidget(self.sleep_button)
+
+        # Adding the "Cancel Error" button
+        self.cancel_error_button = QPushButton("Cancel Error", self)
+        bottom_layout.addWidget(self.cancel_error_button)
+        self.cancel_error_button.clicked.connect(self.cancel_error)
+
+        layout.addLayout(bottom_layout)
+
+    def cancel_error(self):
+        # Send CE with KEY command to the machine
+        try:
+            result = subprocess.run(
+                ["C:\\Program Files (x86)\\HEIDENHAIN\\TNCremo\\TNCcmdPlus.exe", "-i", self.monitor.ip_address, "KEY",
+                 "CE"],
+                capture_output=True,
+                text=True
+            )
+            if result.returncode == 0:
+                # You may want to update the UI to reflect the error has been cancelled
+                self.error_label.setText("No Errors")
+                self.error_label.setStyleSheet("color: green;")
+                logging.info("Error cancelled successfully.")
+            else:
+                logging.error("Failed to cancel error on the machine.")
+        except Exception as e:
+            logging.error(f"Error cancelling error on the machine: {e}")
+
+    def show_live_screen(self):
+        screen_file_path = self.fetch_live_screen()
+        if screen_file_path:
+            self.display_live_screen(screen_file_path)
+            os.remove(screen_file_path)  # Clean up the temporary file
+
+    def fetch_live_screen(self):
+        temp_bitmap_file = "\\temp\\temp.bmp"
+        try:
+            subprocess.run(
+                ["C:\\Program Files (x86)\\HEIDENHAIN\\TNCremo\\TNCcmdPlus.exe", "-i", self.monitor.ip_address,
+                 "screen", temp_bitmap_file], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            if os.path.exists(temp_bitmap_file):
+                return temp_bitmap_file
+            else:
+                print("Failed to fetch or save live screen.")
+                return None
+        except Exception as e:
+            logging.error(f"UI Update Error: {e}")
+            print(f"Error in fetching live screen: {e}")
             return None
-    except Exception as e:
-        logging.error(f"UI Update Error: {e}")
-        print(f"Error in fetching live screen: {e}")
-        return None
 
-def display_live_screen(self, screen_file_path):
-    dialog = QDialog(self)
-    dialog.setWindowTitle("Live Screen")
-    layout = QVBoxLayout(dialog)
+    def display_live_screen(self, screen_file_path):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Live Screen")
+        layout = QVBoxLayout(dialog)
 
-    pixmap = QPixmap(screen_file_path)
-    label = QLabel(dialog)
-    label.setPixmap(pixmap)
-    layout.addWidget(label)
+        pixmap = QPixmap(screen_file_path)
+        label = QLabel(dialog)
+        label.setPixmap(pixmap)
+        layout.addWidget(label)
 
-    dialog.exec_()
+        dialog.exec_()
 
-def updateUI(self, status, progress, program_name=None, error_text=None, error_class=None):
-    # Emit the signal with the new data
-    # print(f"Emitting signal: status={status}, line={current_line}, program={current_program}")
-    self.status_updated.emit(status, progress, program_name, error_text, error_class)
-    if program_name:
-        self.current_program_label.setText(f"Current Program: {program_name}")
-        self.current_program_label.repaint()
-    else:
-        self.current_program_label.setText("Current Program: None")
-        self.current_program_label.repaint()
+    def updateUI(self, status, progress, program_name=None, error_text=None, error_class=None):
+        # Emit the signal with the new data
+        # print(f"Emitting signal: status={status}, line={current_line}, program={current_program}")
+        self.status_updated.emit(status, progress, program_name, error_text, error_class)
+        if program_name:
+            self.current_program_label.setText(f"Current Program: {program_name}")
+            self.current_program_label.repaint()
+        else:
+            self.current_program_label.setText("Current Program: None")
+            self.current_program_label.repaint()
 
-    # Update the machine status label
-    self.machine_status_label.setText(f"Machine Status: {status}")
+        # Update the machine status label
+        self.machine_status_label.setText(f"Machine Status: {status}")
 
-    # Update the line number label with the progress (line number)
-    self.line_number_label.setText(f"Line Number: {progress}")
+        # Update the line number label with the progress (line number)
+        self.line_number_label.setText(f"Line Number: {progress}")
 
-    # Update the error information
-    if error_text and error_class:
-        self.error_label.setText(f"Error: {error_text}, Class: {error_class}")
-    else:
-        self.error_label.setText("No Errors")
+        # Update the error information
+        if error_text and error_class:
+            self.error_label.setText(f"Error: {error_text}, Class: {error_class}")
+        else:
+            self.error_label.setText("No Errors")
 
 
 

@@ -36,7 +36,7 @@ class MachineMonitor(QObject):
         self.moveToThread(self.thread)
         self.thread.started.connect(self.run)
         self.running = True
-        self.db_manager = DBManager(os.path.join(os.path.dirname(__file__), 'DATABASE', 'database.csv'))
+        self.db_manager = DBManager()
         self.thread.start()  
 
     def run(self):
@@ -190,23 +190,17 @@ class MachineMonitor(QObject):
             logging.error(f"An error occurred in getMachineError: {e}")
             # Return the exception message and a generic error class
             return str(e), "Exception"
-            
+
     @staticmethod
     def read_database():
-
-        db_file = os.path.join(os.path.dirname(__file__), 'DATABASE', 'database.csv')
-        data = []
-        with open(db_file, 'r') as file:
-                for line in file:
-                    program_id, pallet_number, program_name, creation_time, total_runtime = line.strip().split(',')
-                    data.append({
-                        'program_id': program_id,
-                        'pallet_number': pallet_number,
-                        'program_name': program_name,
-                        'creation_time': creation_time,
-                        'total_runtime': total_runtime
-                })
-        return data
+        db_manager = DBManager()
+        if db_manager.connect():
+            data = db_manager.fetch_data()  # Fetch all data from the table
+            db_manager.disconnect()
+            return data
+        else:
+            print("Failed to connect to the database.")
+            return []
 
     def update_callback(self, *args, **kwargs):
         # Emit the signal with up to six arguments
