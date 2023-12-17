@@ -262,15 +262,7 @@ class MonitorUI(QMainWindow):
             db_manager.disconnect()
             self.update_ui_with_database_data()  # Update the UI with the new data
 
-    def read_database(self):
-        db_manager = DBManager()
-        if db_manager.connect():
-            data = db_manager.fetch_all_data()  # Assuming you have a method to fetch all data from 'table1'
-            db_manager.disconnect()
-            return data
-        else:
-            logging.error("Failed to connect to the database.")
-            return []
+
 
     def update_ui_with_database_data(self):
         print("Inside update_ui_with_database_data")
@@ -541,7 +533,6 @@ class MonitorUI(QMainWindow):
         hours = total_minutes // 60
         minutes = total_minutes % 60
         return f"{hours:02d}:{minutes:02d}"
-
 
     def fetch_data_from_database(self):
         # Create an instance of DBManager
