@@ -175,6 +175,7 @@ import subprocess
 
 class MonitorUI(QMainWindow):
     print("Initializing MonitorUI")
+
     def __init__(self):
         super(MonitorUI, self).__init__()
         self.initUI()
@@ -535,6 +536,7 @@ def update_error_label(self, error_text, error_class):
             print(f"Error fetching data from database: {e}")
 
         return data
+
     def updateCompletionTime(self):
         total_milling_time = timedelta()
         current_time = datetime.now()
@@ -569,6 +571,8 @@ def update_error_label(self, error_text, error_class):
         else:
             self.error_label.setText("No Errors")
 
+
+pass
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
