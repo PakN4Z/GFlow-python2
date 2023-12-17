@@ -177,6 +177,7 @@ class MonitorUI(QMainWindow):
     print("Initializing MonitorUI")
 
     def __init__(self):
+        print(dir(self))
         super(MonitorUI, self).__init__()
         self.initUI()
 
@@ -231,6 +232,7 @@ class MonitorUI(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        print(dir(self))
         self.initUI()
         self.update_ui_with_database_data()  # Initial table population
 
