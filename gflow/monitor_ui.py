@@ -266,10 +266,8 @@ class MonitorUI(QMainWindow):
 
     def update_ui_with_database_data(self):
         print("Inside update_ui_with_database_data")
-        # Clear the existing contents of the table
         self.table.clearContents()
 
-        # Create an instance of DBManager and fetch data from the MySQL database
         db_manager = DBManager()
         if db_manager.connect():
             data = db_manager.fetch_data()  # Fetch data from the MySQL database
@@ -278,15 +276,11 @@ class MonitorUI(QMainWindow):
             data = []
             print("Failed to connect to the database.")
 
-        # Set the number of rows in the table based on the data length
         self.table.setRowCount(len(data))
 
-        # Iterate over each entry in the data and update the table
         for row_index, entry in enumerate(data):
-            # Assuming entry is a tuple or list in the order of your MySQL table columns
-            # Create a ControlWidget for each row
-            control_widget = ControlWidget(self, row_id=entry[0],  # Assuming program_id is the first column
-                                           update_table_callback=self.update_ui_with_database_data)
+            control_widget = ControlWidget(self, row_id=entry[0], update_table_callback=self.update_ui_with_database_data)
+
 
             # Handle different total_runtime formats
             total_runtime = entry[3]  # Adjust the index based on your table structure
@@ -534,22 +528,7 @@ class MonitorUI(QMainWindow):
         minutes = total_minutes % 60
         return f"{hours:02d}:{minutes:02d}"
 
-    def fetch_data_from_database(self):
-        # Create an instance of DBManager
-        db_manager = DBManager()
 
-        # Connect to the database and fetch data
-        data = []
-        try:
-            if db_manager.connect():
-                data = db_manager.fetch_all_data()  # Fetch all data from the MySQL database
-                db_manager.disconnect()
-            else:
-                print("Failed to connect to the database.")
-        except Exception as e:
-            print(f"Error fetching data from database: {e}")
-
-        return data
 
 
 

@@ -50,8 +50,8 @@ class MachineMonitor(QObject):
                 error_text, error_class = self.getMachineError()
 
                 if self.update_callback:
-                    # Call update_callback with all extracted data
-                    self.update_callback(status, current_line, selected_program, current_program, error_text, error_class)
+                    self.update_callback(status, current_line, selected_program, current_program, error_text,
+                                         error_class)
             
             except Exception as e:
                 logging.exception("An error occurred in the run method.")
