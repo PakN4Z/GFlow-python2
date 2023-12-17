@@ -177,9 +177,12 @@ class MonitorUI(QMainWindow):
     print("Initializing MonitorUI")
 
     def __init__(self):
-        print(dir(self))
-        super(MonitorUI, self).__init__()
+        super().__init__()
         self.initUI()
+        self.update_ui_with_database_data()
+        # Initialize MachineMonitor
+        self.monitor = MachineMonitor("192.168.1.228", self.updateUI)
+        self.monitor.status_updated.connect(self.update_status)
 
     def initUI(self):
         # Add the GUI initialization code here
@@ -230,15 +233,50 @@ class MonitorUI(QMainWindow):
             logging.error("Failed to connect to the database.")
             return []
 
-    def __init__(self):
-        super().__init__()
-        print(dir(self))
-        self.initUI()
-        self.update_ui_with_database_data()  # Initial table population
+    def update_ui_with_database_data(self):
+        print("Inside update_ui_with_database_data")
+        # Clear the existing contents of the table
+        self.table.clearContents()
 
-        # Initialize MachineMonitor
-        self.monitor = MachineMonitor("192.168.1.228", self.updateUI)
-        self.monitor.status_updated.connect(self.update_status)
+        # Create an instance of DBManager and fetch data from the MySQL database
+        db_manager = DBManager()
+        if db_manager.connect():
+            data = db_manager.fetch_data()  # Fetch data from the MySQL database
+            db_manager.disconnect()
+        else:
+            data = []
+            print("Failed to connect to the database.")
+
+        # Set the number of rows in the table based on the data length
+        self.table.setRowCount(len(data))
+
+        # Iterate over each entry in the data and update the table
+        for row_index, entry in enumerate(data):
+            # Assuming entry is a tuple or list in the order of your MySQL table columns
+            # Create a ControlWidget for each row
+            control_widget = ControlWidget(self, row_id=entry[0],  # Assuming program_id is the first column
+                                           update_table_callback=self.update_ui_with_database_data)
+
+            # Handle different total_runtime formats
+            total_runtime = entry[3]  # Adjust the index based on your table structure
+            minutes, seconds = (total_runtime.split(':') if ':' in total_runtime else
+                                (total_runtime, '0') if total_runtime.isdigit() else ('0', '0'))
+
+            total_minutes = int(minutes) + int(seconds) // 60
+            completion_time_str = self.minutes_to_hours(str(total_minutes))
+
+            # Set the row height and populate the table cells
+            self.table.setRowHeight(row_index, 20)
+            self.table.setCellWidget(row_index, 6, control_widget)  # Assuming control widgets are in the 7th column
+            self.table.setItem(row_index, 0, QTableWidgetItem(entry['program_id']))
+            self.table.setItem(row_index, 1, QTableWidgetItem(entry['pallet_number']))
+            self.table.setItem(row_index, 2, QTableWidgetItem(entry['program_name']))
+            self.table.setItem(row_index, 3, QTableWidgetItem(entry['creation_time']))
+            self.table.setItem(row_index, 4, QTableWidgetItem(completion_time_str))
+            self.table.setItem(row_index, 5, QTableWidgetItem(entry['status']))  # Assuming status is in the 6th column
+
+        # Update the completion time
+        self.updateCompletionTime()
 
     def closeEvent(self, event):
         # Properly stop the thread
@@ -300,181 +338,183 @@ def update_error_label(self, error_text, error_class):
         self.error_label.setText(ERROR_LABEL_NO_ERRORS_TEXT)
         self.error_label.setStyleSheet(ERROR_STYLESHEET_BLACK)
 
-    def initUI(self):
-        self.setWindowTitle("HSM 200 U LP GFlow")
-        self.setGeometry(100, 100, 1200, 800)
+def initUI(self):
+    self.setWindowTitle("HSM 200 U LP GFlow")
+    self.setGeometry(100, 100, 1200, 800)
 
-        self.update_timer = QTimer(self)
-        self.update_timer.timeout.connect(self.update_ui_with_database_data)
-        self.update_timer.start(10000)  # Update every 10 seconds
+    self.update_timer = QTimer(self)
+    self.update_timer.timeout.connect(self.update_ui_with_database_data)
+    self.update_timer.start(10000)  # Update every 10 seconds
 
-        self.central_widget = QWidget(self)
-        self.setCentralWidget(self.central_widget)
-        main_layout = QVBoxLayout(self.central_widget)
+    self.central_widget = QWidget(self)
+    self.setCentralWidget(self.central_widget)
+    main_layout = QVBoxLayout(self.central_widget)
 
-        # Upper Section
-        self.initUpperSection(main_layout)
+    # Upper Section
+    self.initUpperSection(main_layout)
 
-        # Middle Section
-        self.initMiddleSection(main_layout)
+    # Middle Section
+    self.initMiddleSection(main_layout)
 
-        # Bottom Section with additional "Cancel Error" button
-        self.initBottomSection(main_layout)
+    # Bottom Section with additional "Cancel Error" button
+    self.initBottomSection(main_layout)
 
-        # Apply bold font to labels and buttons
-        bold_font = QFont()
-        bold_font.setBold(True)
+    # Apply bold font to labels and buttons
+    bold_font = QFont()
+    bold_font.setBold(True)
 
-        self.line_number_label.setFont(bold_font)
-        self.machine_status_label.setFont(bold_font)
-        self.selected_program_label.setFont(bold_font)
-        self.current_program_label.setFont(bold_font)
-        self.auto_button.setFont(bold_font)
-        self.sleep_button.setFont(bold_font)
-        self.cancel_error_button.setFont(bold_font)
+    self.line_number_label.setFont(bold_font)
+    self.machine_status_label.setFont(bold_font)
+    self.selected_program_label.setFont(bold_font)
+    self.current_program_label.setFont(bold_font)
+    self.auto_button.setFont(bold_font)
+    self.sleep_button.setFont(bold_font)
+    self.cancel_error_button.setFont(bold_font)
 
-        # Start the monitor
-        self.monitor = MachineMonitor("192.168.1.228", self.updateUI)
-        # self.monitor.start()
+    # Start the monitor
+    self.monitor = MachineMonitor("192.168.1.228", self.updateUI)
+    # self.monitor.start()
 
-    def initUpperSection(self, layout):
-        upper_layout = QHBoxLayout()
+def initUpperSection(self, layout):
+    upper_layout = QHBoxLayout()
 
-        self.line_number_label = QLabel("Line Number: --", self)
-        upper_layout.addWidget(self.line_number_label)
+    self.line_number_label = QLabel("Line Number: --", self)
+    upper_layout.addWidget(self.line_number_label)
 
-        self.machine_status_label = QLabel("Machine Status: Unknown", self)
-        upper_layout.addWidget(self.machine_status_label)
+    self.machine_status_label = QLabel("Machine Status: Unknown", self)
+    upper_layout.addWidget(self.machine_status_label)
 
-        self.selected_program_label = QLabel("Selected Program: None", self)
-        upper_layout.addWidget(self.selected_program_label)
+    self.selected_program_label = QLabel("Selected Program: None", self)
+    upper_layout.addWidget(self.selected_program_label)
 
-        self.current_program_label = QLabel("Current Program: None", self)
-        upper_layout.addWidget(self.current_program_label)
+    self.current_program_label = QLabel("Current Program: None", self)
+    upper_layout.addWidget(self.current_program_label)
 
-        self.live_screen_button = QPushButton("Live Screen", self)
-        upper_layout.addWidget(self.live_screen_button)
-        self.live_screen_button.clicked.connect(self.show_live_screen)
+    self.live_screen_button = QPushButton("Live Screen", self)
+    upper_layout.addWidget(self.live_screen_button)
+    self.live_screen_button.clicked.connect(self.show_live_screen)
 
-        self.error_label = QLabel("Error: None", self)
-        self.error_label.setStyleSheet("color: red;")
-        upper_layout.addWidget(self.error_label)
+    self.error_label = QLabel("Error: None", self)
+    self.error_label.setStyleSheet("color: red;")
+    upper_layout.addWidget(self.error_label)
 
-        layout.addLayout(upper_layout)
+    layout.addLayout(upper_layout)
 
-    def initMiddleSection(self, layout):
-        self.table = QTableWidget(self)
-        self.table.setColumnCount(8)  # Number of columns
-        self.table.setHorizontalHeaderLabels(
-            ["ID", "Pallet", "Program", "Created", "Milling Time", "Control", "Status", "ATP Program"])
-        layout.addWidget(self.table)
+def initMiddleSection(self, layout):
+    self.table = QTableWidget(self)
+    self.table.setColumnCount(8)  # Number of columns
+    self.table.setHorizontalHeaderLabels(
+        ["ID", "Pallet", "Program", "Created", "Milling Time", "Control", "Status", "ATP Program"])
+    layout.addWidget(self.table)
 
-        # Set column widths to be resizable
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)  # "Program" column
-        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.Stretch)  # "Control" column
-        # When populating the table
-        # data = self.read_database()
-        # for row_index, entry in enumerate(data):
-        #    control_widget = ControlWidget(parent=self, row_id=entry['program_id'], update_table_callback=self.update_ui_with_database_data)
-        #    self.table.setCellWidget(row_index, 5, control_widget)  # Ensure correct column index
+    # Set column widths to be resizable
+    self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)  # "Program" column
+    self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.Stretch)  # "Control" column
+    # When populating the table
+    # data = self.read_database()
+    # for row_index, entry in enumerate(data):
+    #    control_widget = ControlWidget(parent=self, row_id=entry['program_id'], update_table_callback=self.update_ui_with_database_data)
+    #    self.table.setCellWidget(row_index, 5, control_widget)  # Ensure correct column index
 
-        # Set row heights to be adjustable based on content
-        self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+    # Set row heights to be adjustable based on content
+    self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
 
-        self.completion_time_label = QLabel("Estimated Completion: --", self)
-        layout.addWidget(self.completion_time_label)
+    self.completion_time_label = QLabel("Estimated Completion: --", self)
+    layout.addWidget(self.completion_time_label)
 
-    def initBottomSection(self, layout):
-        bottom_layout = QHBoxLayout()
+def initBottomSection(self, layout):
+    bottom_layout = QHBoxLayout()
 
-        self.auto_button = QPushButton("AUTO", self)
-        bottom_layout.addWidget(self.auto_button)
+    self.auto_button = QPushButton("AUTO", self)
+    bottom_layout.addWidget(self.auto_button)
 
-        self.sleep_button = QPushButton("SLEEP", self)
-        bottom_layout.addWidget(self.sleep_button)
+    self.sleep_button = QPushButton("SLEEP", self)
+    bottom_layout.addWidget(self.sleep_button)
 
-        # Adding the "Cancel Error" button
-        self.cancel_error_button = QPushButton("Cancel Error", self)
-        bottom_layout.addWidget(self.cancel_error_button)
-        self.cancel_error_button.clicked.connect(self.cancel_error)
+    # Adding the "Cancel Error" button
+    self.cancel_error_button = QPushButton("Cancel Error", self)
+    bottom_layout.addWidget(self.cancel_error_button)
+    self.cancel_error_button.clicked.connect(self.cancel_error)
 
-        layout.addLayout(bottom_layout)
+    layout.addLayout(bottom_layout)
 
-    def cancel_error(self):
-        # Send CE with KEY command to the machine
-        try:
-            result = subprocess.run(
-                ["C:\\Program Files (x86)\\HEIDENHAIN\\TNCremo\\TNCcmdPlus.exe", "-i", self.monitor.ip_address, "KEY",
-                 "CE"],
-                capture_output=True,
-                text=True
-            )
-            if result.returncode == 0:
-                # You may want to update the UI to reflect the error has been cancelled
-                self.error_label.setText("No Errors")
-                self.error_label.setStyleSheet("color: green;")
-                logging.info("Error cancelled successfully.")
-            else:
-                logging.error("Failed to cancel error on the machine.")
-        except Exception as e:
-            logging.error(f"Error cancelling error on the machine: {e}")
-
-    def show_live_screen(self):
-        screen_file_path = self.fetch_live_screen()
-        if screen_file_path:
-            self.display_live_screen(screen_file_path)
-            os.remove(screen_file_path)  # Clean up the temporary file
-
-    def fetch_live_screen(self):
-        temp_bitmap_file = "\\temp\\temp.bmp"
-        try:
-            subprocess.run(
-                ["C:\\Program Files (x86)\\HEIDENHAIN\\TNCremo\\TNCcmdPlus.exe", "-i", self.monitor.ip_address,
-                 "screen", temp_bitmap_file], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
-            if os.path.exists(temp_bitmap_file):
-                return temp_bitmap_file
-            else:
-                print("Failed to fetch or save live screen.")
-                return None
-        except Exception as e:
-            logging.error(f"UI Update Error: {e}")
-            print(f"Error in fetching live screen: {e}")
-            return None
-
-    def display_live_screen(self, screen_file_path):
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Live Screen")
-        layout = QVBoxLayout(dialog)
-
-        pixmap = QPixmap(screen_file_path)
-        label = QLabel(dialog)
-        label.setPixmap(pixmap)
-        layout.addWidget(label)
-
-        dialog.exec_()
-
-    def updateUI(self, status, progress, program_name=None, error_text=None, error_class=None):
-        # Emit the signal with the new data
-        # print(f"Emitting signal: status={status}, line={current_line}, program={current_program}")
-        self.status_updated.emit(status, progress, program_name, error_text, error_class)
-        if program_name:
-            self.current_program_label.setText(f"Current Program: {program_name}")
-            self.current_program_label.repaint()
-        else:
-            self.current_program_label.setText("Current Program: None")
-            self.current_program_label.repaint()
-
-        # Update the machine status label
-        self.machine_status_label.setText(f"Machine Status: {status}")
-
-        # Update the line number label with the progress (line number)
-        self.line_number_label.setText(f"Line Number: {progress}")
-
-        # Update the error information
-        if error_text and error_class:
-            self.error_label.setText(f"Error: {error_text}, Class: {error_class}")
-        else:
+def cancel_error(self):
+    # Send CE with KEY command to the machine
+    try:
+        result = subprocess.run(
+            ["C:\\Program Files (x86)\\HEIDENHAIN\\TNCremo\\TNCcmdPlus.exe", "-i", self.monitor.ip_address, "KEY",
+             "CE"],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode == 0:
+            # You may want to update the UI to reflect the error has been cancelled
             self.error_label.setText("No Errors")
+            self.error_label.setStyleSheet("color: green;")
+            logging.info("Error cancelled successfully.")
+        else:
+            logging.error("Failed to cancel error on the machine.")
+    except Exception as e:
+        logging.error(f"Error cancelling error on the machine: {e}")
+
+def show_live_screen(self):
+    screen_file_path = self.fetch_live_screen()
+    if screen_file_path:
+        self.display_live_screen(screen_file_path)
+        os.remove(screen_file_path)  # Clean up the temporary file
+
+def fetch_live_screen(self):
+    temp_bitmap_file = "\\temp\\temp.bmp"
+    try:
+        subprocess.run(
+            ["C:\\Program Files (x86)\\HEIDENHAIN\\TNCremo\\TNCcmdPlus.exe", "-i", self.monitor.ip_address,
+             "screen", temp_bitmap_file], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        if os.path.exists(temp_bitmap_file):
+            return temp_bitmap_file
+        else:
+            print("Failed to fetch or save live screen.")
+            return None
+    except Exception as e:
+        logging.error(f"UI Update Error: {e}")
+        print(f"Error in fetching live screen: {e}")
+        return None
+
+def display_live_screen(self, screen_file_path):
+    dialog = QDialog(self)
+    dialog.setWindowTitle("Live Screen")
+    layout = QVBoxLayout(dialog)
+
+    pixmap = QPixmap(screen_file_path)
+    label = QLabel(dialog)
+    label.setPixmap(pixmap)
+    layout.addWidget(label)
+
+    dialog.exec_()
+
+def updateUI(self, status, progress, program_name=None, error_text=None, error_class=None):
+    # Emit the signal with the new data
+    # print(f"Emitting signal: status={status}, line={current_line}, program={current_program}")
+    self.status_updated.emit(status, progress, program_name, error_text, error_class)
+    if program_name:
+        self.current_program_label.setText(f"Current Program: {program_name}")
+        self.current_program_label.repaint()
+    else:
+        self.current_program_label.setText("Current Program: None")
+        self.current_program_label.repaint()
+
+    # Update the machine status label
+    self.machine_status_label.setText(f"Machine Status: {status}")
+
+    # Update the line number label with the progress (line number)
+    self.line_number_label.setText(f"Line Number: {progress}")
+
+    # Update the error information
+    if error_text and error_class:
+        self.error_label.setText(f"Error: {error_text}, Class: {error_class}")
+    else:
+        self.error_label.setText("No Errors")
+
+
 
     @staticmethod
     def minutes_to_hours(minutes_str):
@@ -483,44 +523,7 @@ def update_error_label(self, error_text, error_class):
         minutes = total_minutes % 60
         return f"{hours:02d}:{minutes:02d}"
 
-    def update_ui_with_database_data(self):
-        print("Inside update_ui_with_database_data")
-        # Clear the existing contents of the table
-        self.table.clearContents()
 
-        # Create an instance of DBManager and read data from the database
-        db_manager = DBManager(os.path.join(os.path.dirname(__file__), 'DATABASE', 'database.csv'))
-        data = db_manager.read_database()
-
-        # Set the number of rows in the table based on the data length
-        self.table.setRowCount(len(data))
-
-        # Iterate over each entry in the data and update the table
-        for row_index, entry in enumerate(data):
-            # Create a ControlWidget for each row
-            control_widget = ControlWidget(self, row_id=entry['program_id'],
-                                           update_table_callback=self.update_ui_with_database_data)
-
-            # Handle different total_runtime formats
-            total_runtime = entry['total_runtime']
-            minutes, seconds = (total_runtime.split(':') if ':' in total_runtime else
-                                (total_runtime, '0') if total_runtime.isdigit() else ('0', '0'))
-
-            total_minutes = int(minutes) + int(seconds) // 60
-            completion_time_str = self.minutes_to_hours(str(total_minutes))
-
-            # Set the row height and populate the table cells
-            self.table.setRowHeight(row_index, 20)
-            self.table.setCellWidget(row_index, 6, control_widget)  # Assuming control widgets are in the 7th column
-            self.table.setItem(row_index, 0, QTableWidgetItem(entry['program_id']))
-            self.table.setItem(row_index, 1, QTableWidgetItem(entry['pallet_number']))
-            self.table.setItem(row_index, 2, QTableWidgetItem(entry['program_name']))
-            self.table.setItem(row_index, 3, QTableWidgetItem(entry['creation_time']))
-            self.table.setItem(row_index, 4, QTableWidgetItem(completion_time_str))
-            self.table.setItem(row_index, 5, QTableWidgetItem(entry['status']))  # Assuming status is in the 6th column
-
-        # Update the completion time
-        self.updateCompletionTime()
 
     def fetch_data_from_database(self):
         # Create an instance of DBManager
