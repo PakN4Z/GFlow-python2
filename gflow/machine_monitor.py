@@ -207,11 +207,9 @@ class MachineMonitor(QObject):
             return str(e), "Exception"
 
     @staticmethod
-
-
-    def update_callback(self, *args, **kwargs):
+    def update_callback(self, status, progress, selected_program, current_program, error_text, error_class):
         # Emit the signal with up to six arguments
-        self.status_updated.emit(*args[:6])
+        self.status_updated.emit(status, progress, selected_program, current_program, error_text, error_class)
 
 
         # Limit the number of arguments to six
