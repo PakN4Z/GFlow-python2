@@ -9,8 +9,19 @@ from db_manager import DBManager
 
 class MachineMonitor(QObject):
     status_updated = pyqtSignal(str, int, str, str, str, str)
-    
-    
+
+    def fetch_data_from_database(self):
+        """
+        Fetches data from the database and returns it.
+        """
+        db_manager = DBManager()
+        data = []
+        if db_manager.connect():
+            data = db_manager.fetch_data()  # Fetch data from the MySQL database
+            db_manager.disconnect()
+        else:
+            print("Failed to connect to the database.")
+        return data
     
     def startMonitoring(self):
         if not self.thread:
@@ -113,22 +124,26 @@ class MachineMonitor(QObject):
    
 
     def getTotalLinesOfCurrentProgram(self):
-
         try:
             current_program, _ = self.getCurrentProgramInfo()
             if current_program == "<No program active>":
                 return 0, 0
-            program_path = os.path.join("C:\\AUTO\\NIGHT", current_program)
+
+            # Get the directory of the current script
+            script_dir = os.path.dirname(__file__)
+            # Construct the path to the NIGHT folder relative to the script directory
+            program_path = os.path.join(script_dir, "NIGHT", current_program)
+
             if os.path.exists(program_path):
                 with open(program_path, 'r') as file:
                     total_lines = sum(1 for _ in file)
             else:
                 print(f"Program file not found: {program_path}")
                 total_lines = 0
+
             current_line = self.getCurrentProgramInfo()
             return total_lines, current_line
         except Exception as e:
-            logging.error(f"UI Update Error: {e}")
             print(f"Error in getTotalLinesOfCurrentProgram: {e}")
             return 0, 0
 
@@ -192,15 +207,7 @@ class MachineMonitor(QObject):
             return str(e), "Exception"
 
     @staticmethod
-    def read_database():
-        db_manager = DBManager()
-        if db_manager.connect():
-            data = db_manager.fetch_data()  # Fetch all data from the table
-            db_manager.disconnect()
-            return data
-        else:
-            print("Failed to connect to the database.")
-            return []
+
 
     def update_callback(self, *args, **kwargs):
         # Emit the signal with up to six arguments

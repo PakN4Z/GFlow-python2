@@ -1,11 +1,32 @@
-# Add this import at the top of the file
+# PyQt5 imports
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QMainWindow
+from PyQt5.QtWidgets import QVBoxLayout
+from PyQt5.QtWidgets import QHBoxLayout
+from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QLabel
+from PyQt5.QtWidgets import QTableWidget
+from PyQt5.QtWidgets import QPushButton
+from PyQt5.QtWidgets import QTableWidgetItem
+from PyQt5.QtWidgets import QHeaderView
+from PyQt5.QtWidgets import QDialog
+from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QEvent
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QFont
+
+# Standard library and third-party package imports
+from datetime import datetime, timedelta
+import os
+import subprocess
 import logging
 import sys
 
-from PyQt5.QtCore import QEvent
-# The rest of your imports
-from PyQt5.QtWidgets import QWidget
-
+# Local module imports
+from machine_monitor import MachineMonitor
 from db_manager import DBManager
 
 
@@ -161,16 +182,7 @@ class QStatusEvent(QEvent):
 
 
 # Import necessary modules
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QTableWidget, \
-    QPushButton, QTableWidgetItem, QHeaderView, QDialog, QMessageBox
-from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtCore import QTimer
-from PyQt5.QtGui import QPixmap, QColor
-from PyQt5.QtGui import QFont
-from machine_monitor import MachineMonitor
-from datetime import datetime, timedelta
-import os
-import subprocess
+
 
 
 class MonitorUI(QMainWindow):
