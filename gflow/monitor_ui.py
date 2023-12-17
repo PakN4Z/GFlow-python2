@@ -428,7 +428,7 @@ class MonitorUI(QMainWindow):
         self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)  # "Program" column
         self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.Stretch)  # "Control" column
         # When populating the table
-        # data = self.read_database()
+
         # for row_index, entry in enumerate(data):
         #    control_widget = ControlWidget(parent=self, row_id=entry['program_id'], update_table_callback=self.update_ui_with_database_data)
         #    self.table.setCellWidget(row_index, 5, control_widget)  # Ensure correct column index

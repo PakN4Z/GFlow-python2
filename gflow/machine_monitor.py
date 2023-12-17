@@ -10,18 +10,7 @@ from db_manager import DBManager
 class MachineMonitor(QObject):
     status_updated = pyqtSignal(str, int, str, str, str, str)
 
-    def fetch_data_from_database(self):
-        """
-        Fetches data from the database and returns it.
-        """
-        db_manager = DBManager()
-        data = []
-        if db_manager.connect():
-            data = db_manager.fetch_data()  # Fetch data from the MySQL database
-            db_manager.disconnect()
-        else:
-            print("Failed to connect to the database.")
-        return data
+
     
     def startMonitoring(self):
         if not self.thread:
@@ -48,28 +37,26 @@ class MachineMonitor(QObject):
         self.thread.started.connect(self.run)
         self.running = True
         self.db_manager = DBManager()
-        self.thread.start()  
+        self.thread.start()
 
     def run(self):
-
         self.connect_to_machine()
         while self.running:
             try:
-                # Your logic to get status, program info, etc.
                 status = self.getMachineStatus()
                 selected_program, current_program, current_line = self.getCurrentProgramInfo()
                 error_text, error_class = self.getMachineError()
 
                 if self.update_callback:
+                    # Pass only the required arguments
                     self.update_callback(status, current_line, selected_program, current_program, error_text,
                                          error_class)
-            
+
             except Exception as e:
                 logging.exception("An error occurred in the run method.")
                 if self.update_callback:
-                    # Call update_callback with error information
                     self.update_callback('Error', 0, 'None', 'None', str(e), 'Exception')
-            
+
             time.sleep(10)  # Adjust the sleep time as needed
 
         self.close_connection()
@@ -131,7 +118,6 @@ class MachineMonitor(QObject):
 
             # Get the directory of the current script
             script_dir = os.path.dirname(__file__)
-            # Construct the path to the NIGHT folder relative to the script directory
             program_path = os.path.join(script_dir, "NIGHT", current_program)
 
             if os.path.exists(program_path):
