@@ -183,9 +183,49 @@ class MonitorUI(QMainWindow):
         self.monitor.status_updated.connect(self.update_status)
 
     def initUI(self):
-        self.table = QTableWidget(self)
-        # Add the GUI initialization code here
-        pass
+        self.setWindowTitle("HSM 200 U LP GFlow")
+        self.setGeometry(100, 100, 1200, 800)
+
+        self.update_timer = QTimer(self)
+        self.update_timer.timeout.connect(self.update_ui_with_database_data)
+        self.update_timer.start(10000)  # Update every 10 seconds
+
+        self.central_widget = QWidget(self)
+        self.setCentralWidget(self.central_widget)
+        main_layout = QVBoxLayout(self.central_widget)
+
+        # Upper Section
+        self.initUpperSection(main_layout)
+
+        # Middle Section
+        self.initMiddleSection(main_layout)
+
+        # Bottom Section with additional "Cancel Error" button
+        self.initBottomSection(main_layout)
+
+        # Apply bold font to labels and buttons
+        bold_font = QFont()
+        bold_font.setBold(True)
+
+        self.line_number_label.setFont(bold_font)
+        self.machine_status_label.setFont(bold_font)
+        self.selected_program_label.setFont(bold_font)
+        self.current_program_label.setFont(bold_font)
+        self.auto_button.setFont(bold_font)
+        self.sleep_button.setFont(bold_font)
+        self.cancel_error_button.setFont(bold_font)
+
+        # Start the monitor
+        self.monitor = MachineMonitor("192.168.1.228", self.updateUI)
+        # self.monitor.start()
+
+    def update_status(self, status, progress, selected_program, current_program, error_text, error_class):
+        # Update the UI based on the status
+        self.update_machine_status(status)
+        self.update_line_number(progress)
+        self.update_selected_program(selected_program)
+        self.update_current_program(current_program)
+        self.update_error_label(error_text, error_class)
 
     def setMonitor(self, machine_monitor):
         self.machine_monitor = machine_monitor
@@ -277,15 +317,30 @@ class MonitorUI(QMainWindow):
         # Update the completion time
         self.updateCompletionTime()
 
-        def closeEvent(self, event):
-            # Properly stop the thread
-            self.monitor.thread.quit()
-            self.monitor.thread.wait()
-            super().closeEvent(event)
+
 
         # Constants section
 
+    def updateCompletionTime(self):
+        total_milling_time = timedelta()
+        current_time = datetime.now()
 
+        for row in range(self.table.rowCount()):
+            milling_time_str = self.table.item(row, 4).text() if self.table.item(row, 4) else "0:00"
+            hours, minutes = map(int, milling_time_str.split(':'))
+            milling_time_delta = timedelta(hours=hours, minutes=minutes)
+            total_milling_time += milling_time_delta
+
+        estimated_completion = current_time + total_milling_time
+        self.completion_time_label.setText(f"Estimated Completion: {estimated_completion.strftime('%Y-%m-%d %H:%M')}")
+
+    def closeEvent(self, event):
+        # Properly stop the thread
+        self.monitor.thread.quit()
+        self.monitor.thread.wait()
+        super().closeEvent(event)
+
+    # Constants section
     STATUS_AUTOMATIC = "Automatic"
     STATUS_LABEL_TEXT = "Machine Status: "
     LINE_NUMBER_LABEL_TEXT = "Line Number: "
@@ -294,7 +349,6 @@ class MonitorUI(QMainWindow):
     ERROR_LABEL_NO_ERRORS_TEXT = "No Errors"
     ERROR_STYLESHEET_RED = "color: red;"
     ERROR_STYLESHEET_BLACK = "color: black;"
-
 
     @pyqtSlot(str, int, str, str, str, str)
     def updateUI(self, status, progress, selected_program, current_program, error_text, error_class):
@@ -305,10 +359,11 @@ class MonitorUI(QMainWindow):
         self.update_error_label(error_text, error_class)
         logging.info(f"UI Updated: {error_text}, Class: {error_class}")
 
-
     def update_machine_status(self, status):
         status_html = f"<span style='color: green; font-weight: normal;'>{status}</span>" if status == STATUS_AUTOMATIC else status
         self.machine_status_label.setText(f"{STATUS_LABEL_TEXT}{status_html}")
+
+
 
 
     def update_line_number(self, progress):
@@ -337,42 +392,7 @@ class MonitorUI(QMainWindow):
             self.error_label.setText(ERROR_LABEL_NO_ERRORS_TEXT)
             self.error_label.setStyleSheet(ERROR_STYLESHEET_BLACK)
 
-    def initUI(self):
-        self.setWindowTitle("HSM 200 U LP GFlow")
-        self.setGeometry(100, 100, 1200, 800)
 
-        self.update_timer = QTimer(self)
-        self.update_timer.timeout.connect(self.update_ui_with_database_data)
-        self.update_timer.start(10000)  # Update every 10 seconds
-
-        self.central_widget = QWidget(self)
-        self.setCentralWidget(self.central_widget)
-        main_layout = QVBoxLayout(self.central_widget)
-
-        # Upper Section
-        self.initUpperSection(main_layout)
-
-        # Middle Section
-        self.initMiddleSection(main_layout)
-
-        # Bottom Section with additional "Cancel Error" button
-        self.initBottomSection(main_layout)
-
-        # Apply bold font to labels and buttons
-        bold_font = QFont()
-        bold_font.setBold(True)
-
-        self.line_number_label.setFont(bold_font)
-        self.machine_status_label.setFont(bold_font)
-        self.selected_program_label.setFont(bold_font)
-        self.current_program_label.setFont(bold_font)
-        self.auto_button.setFont(bold_font)
-        self.sleep_button.setFont(bold_font)
-        self.cancel_error_button.setFont(bold_font)
-
-        # Start the monitor
-        self.monitor = MachineMonitor("192.168.1.228", self.updateUI)
-        # self.monitor.start()
 
     def initUpperSection(self, layout):
         upper_layout = QHBoxLayout()
@@ -523,16 +543,15 @@ class MonitorUI(QMainWindow):
         return f"{hours:02d}:{minutes:02d}"
 
 
-
     def fetch_data_from_database(self):
         # Create an instance of DBManager
-        db_manager = DBManager(os.path.join(os.path.dirname(__file__), 'DATABASE', 'database.csv'))
+        db_manager = DBManager()
 
         # Connect to the database and fetch data
         data = []
         try:
             if db_manager.connect():
-                data = db_manager.fetch_all_data()  # Replace 'fetch_all_data' with your method to fetch data
+                data = db_manager.fetch_all_data()  # Fetch all data from the MySQL database
                 db_manager.disconnect()
             else:
                 print("Failed to connect to the database.")
@@ -541,18 +560,7 @@ class MonitorUI(QMainWindow):
 
         return data
 
-    def updateCompletionTime(self):
-        total_milling_time = timedelta()
-        current_time = datetime.now()
 
-        for row in range(self.table.rowCount()):
-            milling_time_str = self.table.item(row, 4).text() if self.table.item(row, 4) else "0:00"
-            hours, minutes = map(int, milling_time_str.split(':'))
-            milling_time_delta = timedelta(hours=hours, minutes=minutes)
-            total_milling_time += milling_time_delta
-
-        estimated_completion = current_time + total_milling_time
-        self.completion_time_label.setText(f"Estimated Completion: {estimated_completion.strftime('%Y-%m-%d %H:%M')}")
 
     def read_database(self):
         db_manager = DBManager()
