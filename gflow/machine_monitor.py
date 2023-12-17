@@ -48,13 +48,14 @@ class MachineMonitor(QObject):
                 error_text, error_class = self.getMachineError()
 
                 if self.update_callback:
-                    # Pass only the required arguments
+                    # Send only the required arguments
                     self.update_callback(status, current_line, selected_program, current_program, error_text,
                                          error_class)
 
             except Exception as e:
                 logging.exception("An error occurred in the run method.")
                 if self.update_callback:
+                    # Send error information
                     self.update_callback('Error', 0, 'None', 'None', str(e), 'Exception')
 
             time.sleep(10)  # Adjust the sleep time as needed
