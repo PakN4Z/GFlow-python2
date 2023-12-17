@@ -173,7 +173,7 @@ import os
 import subprocess
 
 
-class MonitorUI(<SomeBaseClass>):
+class MonitorUI(QMainWindow):
     def __init__(self):
         super(MonitorUI, self).__init__()
         self.initUI()
@@ -480,29 +480,32 @@ def update_error_label(self, error_text, error_class):
         return f"{hours:02d}:{minutes:02d}"
 
     def update_ui_with_database_data(self):
+        # Clear the existing contents of the table
         self.table.clearContents()
+
+        # Create an instance of DBManager and read data from the database
         db_manager = DBManager(os.path.join(os.path.dirname(__file__), 'DATABASE', 'database.csv'))
         data = db_manager.read_database()
+
+        # Set the number of rows in the table based on the data length
         self.table.setRowCount(len(data))
+
+        # Iterate over each entry in the data and update the table
         for row_index, entry in enumerate(data):
+            # Create a ControlWidget for each row
             control_widget = ControlWidget(self, row_id=entry['program_id'],
                                            update_table_callback=self.update_ui_with_database_data)
 
             # Handle different total_runtime formats
             total_runtime = entry['total_runtime']
-            if ':' in total_runtime:
-                minutes, seconds = total_runtime.split(':')
-            elif total_runtime.isdigit():
-                minutes = total_runtime
-                seconds = '0'
-            else:
-                minutes = '0'
-                seconds = '0'
+            minutes, seconds = (total_runtime.split(':') if ':' in total_runtime else
+                                (total_runtime, '0') if total_runtime.isdigit() else ('0', '0'))
 
             total_minutes = int(minutes) + int(seconds) // 60
             completion_time_str = self.minutes_to_hours(str(total_minutes))
 
-            self.table.setRowHeight(row_index, 20)  # Adjust height as needed
+            # Set the row height and populate the table cells
+            self.table.setRowHeight(row_index, 20)
             self.table.setCellWidget(row_index, 6, control_widget)  # Assuming control widgets are in the 7th column
             self.table.setItem(row_index, 0, QTableWidgetItem(entry['program_id']))
             self.table.setItem(row_index, 1, QTableWidgetItem(entry['pallet_number']))
@@ -511,8 +514,25 @@ def update_error_label(self, error_text, error_class):
             self.table.setItem(row_index, 4, QTableWidgetItem(completion_time_str))
             self.table.setItem(row_index, 5, QTableWidgetItem(entry['status']))  # Assuming status is in the 6th column
 
+        # Update the completion time
         self.updateCompletionTime()
 
+    def fetch_data_from_database(self):
+        # Create an instance of DBManager
+        db_manager = DBManager(os.path.join(os.path.dirname(__file__), 'DATABASE', 'database.csv'))
+
+        # Connect to the database and fetch data
+        data = []
+        try:
+            if db_manager.connect():
+                data = db_manager.fetch_all_data()  # Replace 'fetch_all_data' with your method to fetch data
+                db_manager.disconnect()
+            else:
+                print("Failed to connect to the database.")
+        except Exception as e:
+            print(f"Error fetching data from database: {e}")
+
+        return data
     def updateCompletionTime(self):
         total_milling_time = timedelta()
         current_time = datetime.now()
