@@ -574,7 +574,6 @@ def update_error_label(self, error_text, error_class):
             self.error_label.setText("No Errors")
 
 
-pass
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

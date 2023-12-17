@@ -11,7 +11,7 @@ class Application:
         self.setup_logging()
         logging.debug("Logging is set up. Starting GFlow application")
         self.app = QApplication(sys.argv)
-        self.stebim_process = subprocess.Popen(['python', 'StebimV3.pyw'])
+        self.stebim_process = subprocess.Popen(['python', 'StebimV3.py'])
         self.main_window = MonitorUI()
         self.machine_monitor = MachineMonitor("192.168.1.228", self.main_window.updateUI)
         self.main_window.setMonitor(self.machine_monitor)
