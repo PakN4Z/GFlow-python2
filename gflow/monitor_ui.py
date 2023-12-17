@@ -174,6 +174,7 @@ import subprocess
 
 
 class MonitorUI(QMainWindow):
+    print("Initializing MonitorUI")
     def __init__(self):
         super(MonitorUI, self).__init__()
         self.initUI()
@@ -480,6 +481,7 @@ def update_error_label(self, error_text, error_class):
         return f"{hours:02d}:{minutes:02d}"
 
     def update_ui_with_database_data(self):
+        print("Inside update_ui_with_database_data")
         # Clear the existing contents of the table
         self.table.clearContents()
 
