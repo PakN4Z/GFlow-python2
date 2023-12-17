@@ -553,15 +553,7 @@ class MonitorUI(QMainWindow):
 
 
 
-    def read_database(self):
-        db_manager = DBManager()
-        if db_manager.connect():
-            data = db_manager.fetch_all_data()  # Assuming you have a method to fetch all data from 'table1'
-            db_manager.disconnect()
-            return data
-        else:
-            logging.error("Failed to connect to the database.")
-            return []
+
 
     def update_callback(self, status, progress, program_name=None, error_text=None, error_class=None):
         # Update the UI elements with the received data
