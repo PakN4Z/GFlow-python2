@@ -18,6 +18,7 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtGui import QColor
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import pyqtSignal
+import logging
 
 # Standard library and third-party package imports
 from datetime import datetime, timedelta
@@ -109,7 +110,6 @@ class ControlWidget(QWidget):
         return None
 
     def manual_upload(self):
-
         logging.debug(f"Initiating manual upload for row ID {self.row_id}")
         try:
             program_name = ControlWidget.get_program_name_from_db(self.row_id)
@@ -117,7 +117,6 @@ class ControlWidget(QWidget):
                 file_path = os.path.join("C:\\AUTO\\NIGHT", program_name)
                 logging.debug(f"Attempting to upload file: {file_path}")
                 upload_success = self.upload_file(file_path, self.main_ui.monitor.ip_address)
-
                 if upload_success:
                     self.manual_upload_button.setText("Uploaded")
                     self.manual_upload_button.setStyleSheet("background-color: green;")
@@ -131,7 +130,6 @@ class ControlWidget(QWidget):
             logging.error(f"Exception occurred during manual upload: {e}")
 
     def upload_file(self, file_path, machine_ip):
-
         logging.debug(f"Starting file upload: {file_path} to machine IP: {machine_ip}")
         try:
             file_name = os.path.basename(file_path)
@@ -185,18 +183,25 @@ class QStatusEvent(QEvent):
 # Import necessary modules
 
 
-
 class MonitorUI(QMainWindow):
     status_updated = pyqtSignal(str, int, str, str, str)
+
     def __init__(self):
         super().__init__()
-        self.initUI()
-        self.update_ui_with_database_data()
+        self.initUI()  # move initialization of UI first before the MachineMonitor initialization
+
+        # ... Existing code here
+        logging.debug("MonitorUI instance created.")
+
         # Initialize MachineMonitor
-        self.monitor = MachineMonitor("192.168.1.228", self.updateUI)
+        self.monitor = MachineMonitor("192.168.1.228")
+        self.monitor.start_monitoring()
+
+        # Connect MachineMonitor signal to a slot
         self.monitor.status_updated.connect(self.update_status)
 
     def initUI(self):
+        logging.debug("Initializing UI.")
         self.setWindowTitle("HSM 200 U LP GFlow")
         self.setGeometry(100, 100, 1200, 800)
 
@@ -234,7 +239,9 @@ class MonitorUI(QMainWindow):
         # self.monitor.start()
 
     def update_status(self, status, progress, selected_program, current_program, error_text, error_class):
-        # Update the UI based on the status
+        # Add a print or logging statement here
+        print("Called update_status()")
+        logging.debug("Called update_status()")
         self.update_machine_status(status)
         self.update_line_number(progress)
         self.update_selected_program(selected_program)
@@ -276,10 +283,8 @@ class MonitorUI(QMainWindow):
             db_manager.disconnect()
             self.update_ui_with_database_data()  # Update the UI with the new data
 
-
-
     def update_ui_with_database_data(self):
-        print("Inside update_ui_with_database_data")
+        logging.debug("Updating UI with data from database.")
         self.table.clearContents()
 
         db_manager = DBManager()
@@ -335,9 +340,10 @@ class MonitorUI(QMainWindow):
         self.completion_time_label.setText(f"Estimated Completion: {estimated_completion.strftime('%Y-%m-%d %H:%M')}")
 
     def closeEvent(self, event):
+        logging.debug("Processing close event.")
         # Properly stop the thread
-        self.monitor.thread.quit()
-        self.monitor.thread.wait()
+        self.monitor.quit()
+        self.monitor.wait()
         super().closeEvent(event)
 
     # Constants section
@@ -461,7 +467,7 @@ class MonitorUI(QMainWindow):
         layout.addLayout(bottom_layout)
 
     def cancel_error(self):
-        # Send CE with KEY command to the machine
+        logging.debug("Attempting to cancel error on machine.")
         try:
             result = subprocess.run(
                 ["C:\\Program Files (x86)\\HEIDENHAIN\\TNCremo\\TNCcmdPlus.exe", "-i", self.monitor.ip_address, "KEY",
@@ -480,12 +486,14 @@ class MonitorUI(QMainWindow):
             logging.error(f"Error cancelling error on the machine: {e}")
 
     def show_live_screen(self):
+        logging.debug("Attempting to show live screen.")
         screen_file_path = self.fetch_live_screen()
         if screen_file_path:
             self.display_live_screen(screen_file_path)
             os.remove(screen_file_path)  # Clean up the temporary file
 
     def fetch_live_screen(self):
+        logging.debug("Fetching live screen.")
         temp_bitmap_file = "\\temp\\temp.bmp"
         try:
             subprocess.run(
@@ -514,8 +522,7 @@ class MonitorUI(QMainWindow):
         dialog.exec_()
 
     def updateUI(self, status, progress, program_name=None, error_text=None, error_class=None):
-        # Emit the signal with the new data
-        # print(f"Emitting signal: status={status}, line={current_line}, program={current_program}")
+        logging.debug(f"Updating UI with status: {status}, progress: {progress}, program name: {program_name}")
         self.status_updated.emit(status, progress, program_name, error_text, error_class)
         if program_name:
             self.current_program_label.setText(f"Current Program: {program_name}")
@@ -565,7 +572,12 @@ class MonitorUI(QMainWindow):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(filename='application.log', level=logging.DEBUG,
+                        format='%(asctime)s:%(levelname)s:%(message)s')
     app = QApplication(sys.argv)
+    logging.debug("QApplication instance created.")
     main_window = MonitorUI()
+    logging.debug("MonitorUI instance created.")
     main_window.show()
+    logging.debug("Main window displayed.")
     sys.exit(app.exec_())

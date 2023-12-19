@@ -4,98 +4,108 @@ import subprocess
 import time
 import os
 import re
-
-import self
 from PyQt5.QtCore import QObject, pyqtSignal, QThread
 from db_manager import DBManager
 
+
 class MachineMonitor(QObject):
+
+
     status_updated = pyqtSignal(dict)
 
-
-    
-    def startMonitoring(self):
+    def start_monitoring(self):
         if not self.thread:
             self.thread = QThread()
             self.moveToThread(self.thread)
             self.thread.started.connect(self.run)
             self.running = True
             self.thread.start()
-
-    def stopMonitoring(self):
-        self.running = False
-        if self.thread and self.thread.isRunning():
-            self.thread.quit()
-            self.thread.wait()
-            self.thread = None  # Reset the thread
+        logging.info("Monitoring started.")
 
     def __init__(self, ip_address, update_callback=None):
-
         super().__init__()
         self.ip_address = ip_address
         self.update_callback = update_callback
         self.thread = QThread()
         self.moveToThread(self.thread)
-        self.thread.started.connect(self.run)
         self.running = True
         self.db_manager = DBManager()
-        self.thread.start()
+        logging.info("MachineMonitor initialized.")
 
     def run(self):
+        logging.info("Running MachineMonitor.")
         self.connect_to_machine()
+
         while self.running:
             try:
-                status = self.getMachineStatus()
-                selected_program, current_program, current_line = self.getCurrentProgramInfo()
-                error_text, error_class = self.getMachineError()
-
-                if self.update_callback:
-                    # Ensure only the required arguments are sent
-                    self.update_callback(status, current_line, selected_program, error_text, error_class)
+                logging.debug("Preparing to emit status_updated signal")
+                # Inline Temp applied here and Emitting signals directly
+                self.emit_status_update({
+                    'status': self.getMachineStatus(),
+                    'current_line': self.getCurrentProgramInfo()[2],
+                    'selected_program': self.getCurrentProgramInfo()[0],
+                    'current_program': self.getCurrentProgramInfo()[1],
+                    'error_text': self.getMachineError()[0],
+                    'error_class': self.getMachineError()[1]
+                })
+                logging.debug("Emitted status_updated signal successfully")
             except Exception as e:
+                logging.debug("Error occurred, preparing to emit status_updated signal with error details")
                 logging.exception("An error occurred in the run method.")
-                if self.update_callback:
-                    # Send error information
-                    self.update_callback('Error', 0, 'None', str(e), 'Exception')
-
+                # Inline Temp applied here and Emitting signals directly
+                self.emit_status_update({
+                    'status': 'Error',
+                    'current_line': 0,
+                    'selected_program': 'None',
+                    'current_program': 'None',
+                    'error_text': str(e),
+                    'error_class': 'Exception'
+                })
+                logging.debug("Emitted status_updated signal successfully with error details")
+            logging.debug("Sleeping for 10 seconds.")
             time.sleep(10)  # Adjust the sleep time as needed
-
         self.close_connection()
 
     def stop(self):
-
         self.running = False
         if self.thread.isRunning():
             self.thread.quit()
             self.thread.wait()
-
-    
-
-    
+            logging.info("MachineMonitor stopped.")
 
     def connect_to_machine(self):
-
         # Code to establish a connection to the machine
-        # This is a placeholder. You need to replace it with actual code to open a persistent connection.
         self.process = subprocess.Popen(["C:\\Program Files (x86)\\HEIDENHAIN\\TNCremo\\TNCcmdPlus.exe", "-i", self.ip_address], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        logging.info("Connected to machine.")
 
     def reconnect_to_machine(self):
-
         # Attempt to re-establish the connection
         self.close_connection()
         self.connect_to_machine()
+        logging.info("Reconnected to machine.")
 
     def close_connection(self):
-
         # Code to gracefully close the connection
         if self.process:
             self.process.terminate()
             self.process = None
+        logging.info("Connection closed.")
+
+    def _run_command(self, command_arguments):
+        # Extract Method applied here, and it's used in methods like getMachineStatus, getCurrentProgramInfo, and getMachineError
+        # The actual list of arguments would vary based on caller method and so it is passed as a parameter
+        return subprocess.run(
+            command_arguments,
+            capture_output=True,
+            text=True,
+            creationflags=subprocess.CREATE_NO_WINDOW
+        )
 
     def getMachineStatus(self):
-
         try:
-            result = subprocess.run(["C:\\Program Files (x86)\\HEIDENHAIN\\TNCremo\\TNCcmdPlus.exe", "-i", self.ip_address, "runinfo", "e"], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            command_arguments = ["C:\\Program Files (x86)\\HEIDENHAIN\\TNCremo\\TNCcmdPlus.exe", "-i", self.ip_address,
+                                 "runinfo", "e"]
+            result = self._run_command(command_arguments)
             logging.debug(f"Raw output for machine status: {result.stdout}")
             match = re.search(r'Execution Mode: (\d+) \((.*?)\)', result.stdout)
             if match:
@@ -106,10 +116,10 @@ class MachineMonitor(QObject):
         except Exception as e:
             logging.error(f"Error in getMachineStatus: {e}")
             return "Error - " + str(e)
-            
-       
 
-   
+
+
+
 
     def getTotalLinesOfCurrentProgram(self):
         try:
@@ -135,14 +145,10 @@ class MachineMonitor(QObject):
             return 0, 0
 
     def getCurrentProgramInfo(self):
-
         try:
-            result = subprocess.run(
-                ["C:\\Program Files (x86)\\HEIDENHAIN\\TNCremo\\TNCcmdPlus.exe", "-i", self.ip_address, "runinfo", "p"],
-                capture_output=True,
-                text=True,
-                creationflags=subprocess.CREATE_NO_WINDOW
-            )
+            command_arguments = ["C:\\Program Files (x86)\\HEIDENHAIN\\TNCremo\\TNCcmdPlus.exe", "-i", self.ip_address,
+                                 "runinfo", "p"]
+            result = self._run_command(command_arguments)
             logging.debug(f"Raw output for current program info: {result.stdout}")
 
             # Parsing for Selected and Current Program
@@ -165,17 +171,11 @@ class MachineMonitor(QObject):
             logging.error(f"Error in getCurrentProgramInfo: {e}")
             return "error_program", "error_program", 0
 
-    
-
     def getMachineError(self):
-
         try:
-            result = subprocess.run(
-                ["C:\\Program Files (x86)\\HEIDENHAIN\\TNCremo\\TNCcmdPlus.exe", "-i", self.ip_address, "runinfo", "f"],
-                capture_output=True,
-                text=True,
-                creationflags=subprocess.CREATE_NO_WINDOW
-            )
+            command_arguments = ["C:\\Program Files (x86)\\HEIDENHAIN\\TNCremo\\TNCcmdPlus.exe", "-i", self.ip_address,
+                                 "runinfo", "f"]
+            result = self._run_command(command_arguments)
             logging.debug(f"Raw output for machine error: {result.stdout}")
 
             # Check for no errors present
@@ -193,34 +193,22 @@ class MachineMonitor(QObject):
             # Return the exception message and a generic error class
             return str(e), "Exception"
 
-    def emit_status_update(self, status, progress, selected_program, current_program, error_text, error_class):
-
+    def emit_status_update(self, status_update):
         try:
-            # Create a dictionary with all the data
-            data = {
-                'status': status,
-                'progress': progress,
-                'selected_program': selected_program,
-                'current_program': current_program,
-                'error_text': error_text,
-                'error_class': error_class
-            }
-            self.status_updated.emit(data)
+            self.status_updated.emit(status_update)
+            logging.info(f"Status updated: {status_update}")
         except Exception as e:
-            error_data = {
+            self.status_updated.emit({
                 'status': 'Error',
                 'progress': 0,
                 'selected_program': 'None',
                 'current_program': 'None',
                 'error_text': str(e),
                 'error_class': 'Exception'
-            }
-            self.status_updated.emit(error_data)
+            })
+            logging.error(f"An error occurred in emit_status_update: {str(e)}")
 
-
-if __name__ == "__main__":
-
-
-
-    self.monitor = MachineMonitor("192.168.1.228", self.updateUI)
-    self.monitor.status_updated.connect(self.updateUI)
+    if __name__ == "__main__":
+        self.monitor = MachineMonitor("192.168.1.228", self.updateUI)
+        self.monitor.status_updated.connect(self.updateUI)
+        logging.info("MachineMonitor started in main.")  # Import necessary modules
