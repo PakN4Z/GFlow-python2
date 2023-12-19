@@ -348,16 +348,17 @@ class MonitorUI(QMainWindow):
     ERROR_STYLESHEET_RED = "color: red;"
     ERROR_STYLESHEET_BLACK = "color: black;"
 
-    @pyqtSlot(str, int, str, str, str, str)
-    def updateUI(self, status, progress, selected_program, current_program, error_text, error_class):
+    @pyqtSlot(dict)
+    def updateUI(self, params):
         # Update the UI based on the received data
-        self.update_machine_status(status)
-        self.update_line_number(progress)
-        self.update_selected_program(selected_program)
-        self.update_current_program(current_program)
-        self.update_error_label(error_text, error_class)
-        # Additional UI updates as needed
-        logging.info(f"UI Updated: {error_text}, Class: {error_class}")
+        self.update_machine_status(params['status'])
+        self.update_line_number(params['progress'])
+        self.update_selected_program(params['selected_program'])
+        self.update_current_program(params['current_program'])
+        self.update_error_label(params['error_text'], params['error_class'])
+
+
+
 
     def update_machine_status(self, status):
         status_html = f"<span style='color: green; font-weight: normal;'>{status}</span>" if status == STATUS_AUTOMATIC else status

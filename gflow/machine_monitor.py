@@ -8,7 +8,7 @@ from PyQt5.QtCore import QObject, pyqtSignal, QThread
 from db_manager import DBManager
 
 class MachineMonitor(QObject):
-    status_updated = pyqtSignal(str, int, str, str, str, str)
+    status_updated = pyqtSignal(dict)
 
 
     
@@ -194,32 +194,19 @@ class MachineMonitor(QObject):
 
     @staticmethod
     def update_callback(self, status, progress, selected_program, current_program, error_text, error_class):
-        # Emit the signal with up to six arguments
-        self.status_updated.emit(status, progress, selected_program, current_program, error_text, error_class)
+        # Create a dictionary with all the data
+        data = {
+            'status': status,
+            'progress': progress,
+            'selected_program': selected_program,
+            'current_program': current_program,
+            'error_text': error_text,
+            'error_class': error_class
+        }
 
+        # Emit the signal with the dictionary
+        self.status_updated.emit(data)
 
-        # Limit the number of arguments to six
-        args = args[:6]
-        if self.update_callback:
-            self.update_callback(*args)
-        
-        # Additional logging for debugging
-        if len(args) > 0:
-            print(f"Status: {args[0]}")
-        
-        # Example of handling and printing the arguments for debugging or logging
-        if len(args) > 0:
-            print(f"Status: {args[0]}")
-        if len(args) > 1:
-            print(f"Progress: {args[1]}%")
-        if len(args) > 2:
-            print(f"Selected Program: {args[2]}")
-        if len(args) > 3:
-            print(f"Current Program: {args[3]}")
-        if len(args) > 4:
-            print(f"Error Text: {args[4]}")
-        if len(args) > 5:
-            print(f"Error Class: {args[5]}")
 
 if __name__ == "__main__":
     def example_update_callback(*args, **kwargs):
