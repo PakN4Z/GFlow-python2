@@ -17,6 +17,7 @@ from PyQt5.QtCore import QEvent
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtGui import QColor
 from PyQt5.QtGui import QFont
+from PyQt5.QtCore import pyqtSignal
 
 # Standard library and third-party package imports
 from datetime import datetime, timedelta
@@ -186,6 +187,7 @@ class QStatusEvent(QEvent):
 
 
 class MonitorUI(QMainWindow):
+    status_updated = pyqtSignal(str, int, str, str, str)
     def __init__(self):
         super().__init__()
         self.initUI()

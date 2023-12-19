@@ -4,6 +4,8 @@ import subprocess
 import time
 import os
 import re
+
+import self
 from PyQt5.QtCore import QObject, pyqtSignal, QThread
 from db_manager import DBManager
 
@@ -49,13 +51,12 @@ class MachineMonitor(QObject):
 
                 if self.update_callback:
                     # Ensure only the required arguments are sent
-                    self.update_callback(status, current_line, selected_program, current_program, error_text,
-                                         error_class)
+                    self.update_callback(status, current_line, selected_program, error_text, error_class)
             except Exception as e:
                 logging.exception("An error occurred in the run method.")
                 if self.update_callback:
                     # Send error information
-                    self.update_callback('Error', 0, 'None', 'None', str(e), 'Exception')
+                    self.update_callback('Error', 0, 'None', str(e), 'Exception')
 
             time.sleep(10)  # Adjust the sleep time as needed
 
@@ -192,26 +193,34 @@ class MachineMonitor(QObject):
             # Return the exception message and a generic error class
             return str(e), "Exception"
 
-    @staticmethod
-    def update_callback(self, status, progress, selected_program, current_program, error_text, error_class):
-        # Create a dictionary with all the data
-        data = {
-            'status': status,
-            'progress': progress,
-            'selected_program': selected_program,
-            'current_program': current_program,
-            'error_text': error_text,
-            'error_class': error_class
-        }
+    def emit_status_update(self, status, progress, selected_program, current_program, error_text, error_class):
 
-        # Emit the signal with the dictionary
-        self.status_updated.emit(data)
+        try:
+            # Create a dictionary with all the data
+            data = {
+                'status': status,
+                'progress': progress,
+                'selected_program': selected_program,
+                'current_program': current_program,
+                'error_text': error_text,
+                'error_class': error_class
+            }
+            self.status_updated.emit(data)
+        except Exception as e:
+            error_data = {
+                'status': 'Error',
+                'progress': 0,
+                'selected_program': 'None',
+                'current_program': 'None',
+                'error_text': str(e),
+                'error_class': 'Exception'
+            }
+            self.status_updated.emit(error_data)
 
 
 if __name__ == "__main__":
-    def example_update_callback(*args, **kwargs):
 
-        print(f"Received callback with arguments: {args}")
 
-    monitor = MachineMonitor("192.168.1.228", example_update_callback)
-    #monitor.start()
+
+    self.monitor = MachineMonitor("192.168.1.228", self.updateUI)
+    self.monitor.status_updated.connect(self.updateUI)
